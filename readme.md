@@ -37,3 +37,11 @@ entry {
   }
 }
 ```
+
+A few notes about config loading:  
+Location of the configuration file is determined in this order:  
+- by environment variable named `GITSYNC_CONFIG`
+- by looking in configuration folder with subfolder `gitsync` and file `config.hcl` in it.
+- by looking in current working directory.  
+
+It is always expected to find file `config.hcl` or if you for some reason like to use json `config.json`.  
