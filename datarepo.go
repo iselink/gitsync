@@ -5,6 +5,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"log/slog"
 	"os"
 )
@@ -76,10 +77,14 @@ func (r *DataRepo) DoTheThings() error {
 }
 
 func createDataRepos(d *Daemon) error {
-	var err error
-
 	for index := range d.Config.Entry {
-		dr := NewDataRepo(&daemon.Config.Entry[index])
+		dr, err := NewDataRepo(&daemon.Config.Entry[index])
+
+		if err != nil {
+			slog.Error("error while initiating", "msg", err.Error())
+			return err
+		}
+
 		if dr.IsExist() {
 			err = dr.OpenRepository()
 		} else {
@@ -94,10 +99,10 @@ func createDataRepos(d *Daemon) error {
 		}
 	}
 
-	return err
+	return nil
 }
 
-func NewDataRepo(cd *ConfigDirectory) *DataRepo {
+func NewDataRepo(cd *ConfigDirectory) (*DataRepo, error) {
 	rp := &DataRepo{
 		BaseFolder: cd.Path,
 		GitAddress: cd.Repository,
@@ -114,13 +119,21 @@ func NewDataRepo(cd *ConfigDirectory) *DataRepo {
 					Password: cd.Auth.Password,
 				}
 			}
+		} else if cd.Auth.Type == "agent" {
+			auth, err := ssh.NewSSHAgentAuth("git")
+			if err != nil {
+				return rp, err
+			}
 
+			rp.authFunc = func() transport.AuthMethod {
+				return auth
+			}
 		} else {
 			slog.Warn("Unknown auth type", "value", cd.Auth.Type)
 		}
 	}
 
-	return rp
+	return rp, nil
 }
 
 func (r *DataRepo) CommitAndPush() error {
