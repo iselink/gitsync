@@ -3,11 +3,13 @@ package main
 import (
 	"errors"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"log/slog"
 	"os"
+	"time"
 )
 
 func (r *DataRepo) Initiate() error {
@@ -109,6 +111,7 @@ func NewDataRepo(cd *ConfigDirectory) (*DataRepo, error) {
 		authFunc: func() transport.AuthMethod {
 			return nil
 		},
+		configDirectory: cd,
 	}
 
 	if cd.Auth != nil {
@@ -153,15 +156,34 @@ func (r *DataRepo) CommitAndPush() error {
 	}
 
 	if status.IsClean() {
-		return nil //nothing to do
+		slog.Debug("There is nothing to commit.") //TODO: additional data
+		return nil                                //nothing to do
 	}
 
-	_, err = wt.Commit("File changes", &git.CommitOptions{})
+	commitOpts := &git.CommitOptions{
+		All: true,
+	}
+
+	if r.configDirectory.Author != nil {
+		commitOpts.Author = &object.Signature{
+			When: time.Now(),
+		}
+
+		if r.configDirectory.Author.Name != nil {
+			commitOpts.Author.Name = *(r.configDirectory.Author.Name)
+		}
+		if r.configDirectory.Author.Email != nil {
+			commitOpts.Author.Email = *(r.configDirectory.Author.Email)
+		}
+	}
+
+	_, err = wt.Commit(status.String(), commitOpts)
 	if err != nil {
 		return err
 	}
 
 	err = r.Repository.Push(&git.PushOptions{
-		Auth: r.authFunc()})
+		Auth: r.authFunc(),
+	})
 	return err
 }

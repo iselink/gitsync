@@ -10,10 +10,11 @@ import (
 )
 
 type DataRepo struct {
-	BaseFolder string
-	GitAddress string
-	Repository *git.Repository
-	authFunc   func() transport.AuthMethod
+	BaseFolder      string
+	GitAddress      string
+	Repository      *git.Repository
+	authFunc        func() transport.AuthMethod
+	configDirectory *ConfigDirectory
 }
 
 type Daemon struct {
