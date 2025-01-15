@@ -35,6 +35,11 @@ entry {
     username = "your username (if it matter)"
     password = "your password or most likely PAT (personal access token)"
   }
+  
+  author {
+    name = "${username()}@${hostname()}"
+    email = "${username()}@${hostname()}"
+  }
 }
 ```
 
